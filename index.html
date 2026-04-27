@@ -14,48 +14,40 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>📊 Dashboard de Asistencia</h1>
-  </header>
+  html
+<header>
+    <h1>Control de Asistencia</h1>
+</header>
 
-  <main>
-    <section class="card">
-      <h2>Escanear QR</h2>
-      <div id="reader" style="width:100%; min-height:300px; background:#eee;"></div>
-      <p id="status">Cargando sistema...</p>
-    </section>
-
-    <section class="dashboard-grid">
-      <div class="stat-card">
+<div class="dashboard-grid">
+    <div class="stat-card">
         <h3>Presentes</h3>
         <p id="totalPresentes">0</p>
-      </div>
-      <div class="stat-card">
+    </div>
+    <div class="stat-card">
         <h3>Ausentes</h3>
         <p id="totalAusentes">0</p>
-      </div>
+    </div>
+</div>
 
-      <button onclick="descargarExcel()" class="btn-download">
-        📥 Reporte Excel
-      </button>
-    </section>
+<div class="card">
+    <span id="status">📷 Esperando cámara...</span>
+    <div id="reader" style="width: 100%;"></div>
+    <button class="btn-download" onclick="descargarExcel()">Descargar Excel</button>
+</div>
 
-    <section class="card">
-      <h2>Lista de hoy</h2>
-      <table id="tablaAsistencia">
+<div class="card">
+    <table id="tablaAsistencia">
         <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-            <th>Hora</th>
-          </tr>
+            <tr>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+            </tr>
         </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
-
-  <script src="script.js"></script>
-</body>
-</html>
+        <tbody>
+            <!-- Los datos se cargan aquí -->
+        </tbody>
+    </table>
+</div>

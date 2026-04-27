@@ -1,42 +1,114 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistencia QR</title>
-    <link rel="stylesheet" href="style.css">
+const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
 
-    <!-- Librería para escanear QR -->
-  <script src="libs/html5-qrcode.min.js"></script>
+let scanner;
 
-    <!-- Librería para exportar a Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-<body>
-    <header><h1>📊 Dashboard de Asistencia</h1></header>
-    <main>
-        <section class="card">
-            <h2>Escanear QR</h2>
-            <div id="reader" style="width: 100%; min-height: 300px; background: #eee;"></div>
-            <p id="status" style="font-weight: bold; color: blue;">Cargando sistema...</p>
-        </section>
+/*****************************************************
+ * INICIAR ESCÁNER
+ *****************************************************/
+function iniciarScanner() {
+  scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
 
-        <section class="dashboard-grid">
-            <div class="stat-card"><h3>Presentes</h3><p id="totalPresentes">0</p></div>
-            <div class="stat-card"><h3>Ausentes</h3><p id="totalAusentes">0</p></div>
-            <button onclick="descargarExcel()" class="btn-download">📥 Reporte Excel</button>
-        </section>
+  scanner.render(text => {
+    scanner.clear();
+    document.getElementById("status").textContent = "⏳ Registrando...";
 
-        <section class="card">
-            <h2>Lista de hoy</h2>
-            <table id="tablaAsistencia">
-                <thead><tr><th>Nombre</th><th>Estado</th><th>Hora</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </section>
-    </main>
+    fetch(URL_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: text })
+    })
+    .then(res => res.json())
+    .then(result => {
+      if (result.status !== "ok") {
+        throw new Error(result.message || "No se pudo registrar");
+      }
 
-    <!-- Tu script principal -->
-    <script src="script.js"></script>
-</body>
-</html>
+      document.getElementById("status").textContent =
+        "✅ OK - Asistencia registrada";
+
+      actualizarTabla();
+      setTimeout(iniciarScanner, 2500);
+    })
+    .catch(err => {
+      document.getElementById("status").textContent =
+        "❌ Error al registrar: " + err.message;
+      setTimeout(iniciarScanner, 4000);
+    });
+  });
+}
+
+/*****************************************************
+ * ACTUALIZAR TABLA
+ *****************************************************/
+function actualizarTabla() {
+  fetch(URL_API)
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.querySelector("#tablaAsistencia tbody");
+      tbody.innerHTML = "";
+
+      let presentes = 0;
+      let ausentes = 0;
+
+      const usuarios = (data.usuarios || [])
+        .map(u => u[0])
+        .filter(n => n && n !== "Nombre");
+
+      usuarios.forEach(usuario => {
+        const registro = (data.asistencias || [])
+          .find(r => r.nombre === usuario);
+
+        const tr = document.createElement("tr");
+
+        if (registro) {
+          presentes++;
+          tr.innerHTML = `
+            <td>${usuario}</td>
+            <td>Presente</td>
+            <td>${registro.fecha}</td>
+            <td>${registro.hora}</td>
+          `;
+        } else {
+          ausentes++;
+          tr.innerHTML = `
+            <td>${usuario}</td>
+            <td>Ausente</td>
+            <td>--</td>
+            <td>--</td>
+          `;
+        }
+
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("totalPresentes").textContent = presentes;
+      document.getElementById("totalAusentes").textContent = ausentes;
+    })
+    .catch(err => {
+      document.getElementById("status").textContent =
+        "❌ Error al cargar datos: " + err.message;
+    });
+}
+
+/*****************************************************
+ * DESCARGAR EXCEL
+ *****************************************************/
+function descargarExcel() {
+  fetch(URL_API)
+    .then(res => res.json())
+    .then(data => {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data.asistencias || []);
+      XLSX.utils.book_append_sheet(wb, ws, "Registro");
+      XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
+    });
+}
+
+/*****************************************************
+ * INIT
+ *****************************************************/
+window.onload = () => {
+  iniciarScanner();
+  actualizarTabla();
+};
+``

@@ -37,7 +37,6 @@ function iniciarScanner() {
 }
 
 function actualizarTabla() {
-    // Añadimos un timestamp para evitar cache del navegador
     fetch(`${URL_API}?t=${new Date().getTime()}`)
         .then(res => res.json())
         .then(data => {
@@ -45,30 +44,42 @@ function actualizarTabla() {
             tbody.innerHTML = "";
             
             let presentes = 0;
-            const usuarios = (data.usuarios || []).slice(1); // Saltar encabezado si existe
+            
+            // data.usuarios ahora viene como un array de arrays [[Nombre1], [Nombre2]]
+            const listaUsuarios = data.usuarios || [];
 
-            usuarios.forEach(u => {
-                const nombre = u[0];
-                if(!nombre) return;
+            listaUsuarios.forEach(fila => {
+                const usuario = fila[0]; // Extraemos el nombre de la primera columna
+                if (!usuario) return;
 
-                const registro = (data.asistencias || []).find(r => r.nombre === nombre);
+                // Buscamos en el array de objetos asistencias
+                const registro = (data.asistencias || []).find(r => r.nombre === usuario);
+                
                 const tr = document.createElement("tr");
-                
-                if (registro) presentes++;
-                
-                tr.innerHTML = `
-                    <td>${nombre}</td>
-                    <td class="${registro ? 'text-success' : 'text-danger'}">${registro ? 'Presente' : 'Ausente'}</td>
-                    <td>${registro ? registro.fecha : '--'}</td>
-                    <td>${registro ? registro.hora : '--'}</td>
-                `;
+                if (registro) {
+                    presentes++;
+                    tr.innerHTML = `
+                        <td>${usuario}</td>
+                        <td style="color: green; font-weight: bold;">Presente</td>
+                        <td>${registro.fecha}</td>
+                        <td>${registro.hora}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td>${usuario}</td>
+                        <td style="color: red;">Ausente</td>
+                        <td>--</td>
+                        <td>--</td>
+                    `;
+                }
                 tbody.appendChild(tr);
             });
 
             document.getElementById("totalPresentes").textContent = presentes;
-            document.getElementById("totalAusentes").textContent = usuarios.length - presentes;
+            document.getElementById("totalAusentes").textContent = listaUsuarios.length - presentes;
         })
         .catch(err => {
-            console.error("Error tabla:", err);
+            console.error("Error en tabla:", err);
+            document.getElementById("status").textContent = "❌ Error de datos";
         });
 }

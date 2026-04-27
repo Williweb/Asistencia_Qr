@@ -1,143 +1,137 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Asistencia QR</title>
-    
-    <!-- Librerías desde CDN (Necesario para Apps Script) -->
-    <script src="libs/html5-qrcode.min.js"></script>
-     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asistencia QR</title>
 
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f9; color: #333; }
-        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
-        .card { background: white; margin: 1rem auto; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); max-width: 800px; }
-        .dashboard-grid { display: flex; justify-content: space-around; margin: 1rem auto; max-width: 800px; }
-        .stat-card { background: #ecf0f1; padding: 1rem; border-radius: 8px; text-align: center; flex: 1; margin: 0 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .stat-card h3 { margin: 0 0 0.5rem 0; color: #2c3e50; font-size: 1rem; }
-        .stat-card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
-        .btn-download { background: #27ae60; color: white; border: none; padding: 0.8rem 1.2rem; border-radius: 6px; cursor: pointer; font-size: 1rem; margin: 1rem auto; display: block; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th, td { padding: 0.8rem; border: 1px solid #ddd; text-align: center; }
-        thead { background: #34495e; color: white; }
-        #status { font-weight: bold; display: block; text-align: center; padding: 10px; color: #2c3e50; }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
-    </style>
+<script src="libs/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+body { font-family: Arial; background:#f4f6f9; margin:0 }
+header { background:#2c3e50; color:#fff; padding:1rem; text-align:center }
+.card { background:#fff; margin:1rem auto; padding:1rem; max-width:800px; border-radius:8px }
+.dashboard-grid { display:flex; justify-content:space-around; max-width:800px; margin:auto }
+.stat-card { background:#ecf0f1; padding:1rem; flex:1; margin:.5rem; text-align:center }
+table { width:100%; border-collapse:collapse }
+th,td { border:1px solid #ccc; padding:.5rem; text-align:center }
+thead { background:#34495e; color:#fff }
+#status { text-align:center; font-weight:bold; margin:.5rem }
+</style>
 </head>
+
 <body>
 
 <header>
-    <h1>Control de Asistencia</h1>
+<h1>Control de Asistencia</h1>
 </header>
 
 <div class="dashboard-grid">
-    <div class="stat-card">
-        <h3>Presentes</h3>
-        <p id="totalPresentes">0</p>
-    </div>
-    <div class="stat-card">
-        <h3>Ausentes</h3>
-        <p id="totalAusentes">0</p>
-    </div>
+<div class="stat-card">
+<h3>Presentes</h3>
+<p id="totalPresentes">0</p>
+</div>
+<div class="stat-card">
+<h3>Ausentes</h3>
+<p id="totalAusentes">0</p>
+</div>
 </div>
 
 <div class="card">
-    <span id="status">📷 Cargando cámara...</span>
-    <div id="reader"></div>
-    <button class="btn-download" onclick="descargarExcel()">Descargar Excel</button>
+<div id="status">📷 Iniciando cámara…</div>
+<div id="reader"></div>
 </div>
 
-<div class="card" style="overflow-x: auto;">
-    <table id="tablaAsistencia">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Estado</th>
-                <th>Fecha</th>
-                <th>Hora</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+<div class="card">
+<table id="tablaAsistencia">
+<thead>
+<tr>
+<th>Nombre</th>
+<th>Estado</th>
+<th>Fecha</th>
+<th>Hora</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 </div>
 
 <script>
-    // ⚠️ REEMPLAZA ESTA URL CON TU URL DE DESPLIEGUE REAL
-    const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
-    
-    let scanner;
+const URL_API = "PEGA_AQUI_TU_URL_DEL_WEB_APP";
 
-    function iniciarScanner() {
-        if (!scanner) {
-            scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-        }
-        
-       scanner.render(text => {
-    scanner.clear();
-    document.getElementById("status").textContent = "⏳ Registrando...";
+let scanner;
 
-    // Enviamos como texto plano para saltar restricciones de CORS
-    fetch(URL_API, {
-        method: "POST",
-        mode: "no-cors", // Crucial para Apps Script desde dominios externos
-        body: JSON.stringify({ nombre: text })
-    })
-    .then(() => {
-        // Con no-cors no podemos leer la respuesta, pero si llega al Sheets, 
-        // asumimos éxito y refrescamos la tabla.
-        document.getElementById("status").textContent = "✅ " + text + " enviado";
-        setTimeout(() => {
-            actualizarTabla();
-            iniciarScanner();
-        }, 2000);
-    })
-    .catch(err => {
-        document.getElementById("status").textContent = "❌ Error de conexión";
-        setTimeout(iniciarScanner, 4000);
-    });
-});
-    }
-
-   function actualizarTabla() {
-    // Agregamos un timestamp para evitar que Google devuelva datos viejos (cache)
-    const urlConCache = URL_API + "?t=" + new Date().getTime();
-
-    fetch(urlConCache, {
-        method: "GET",
-        mode: "cors", // Forzamos el modo cors
-        headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-        }
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('Respuesta no ok');
-        return res.json();
-    })
-    .then(data => {
-        console.log("Datos recibidos:", data);
-        // ... aquí va tu código para llenar la tabla (tbody.innerHTML, etc)
-    })
-    .catch(err => {
-        console.error("Error de CORS o Red:", err);
-    });
+function iniciarScanner() {
+  scanner = new Html5QrcodeScanner("reader", { fps:10, qrbox:250 });
+  scanner.render(text => registrar(text));
 }
 
-    function descargarExcel() {
-        fetch(URL_API)
-            .then(res => res.json())
-            .then(data => {
-                const ws = XLSX.utils.json_to_sheet(data.asistencias || []);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
-                XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
-            });
-    }
+function registrar(nombre) {
+  scanner.clear();
+  document.getElementById("status").textContent = "⏳ Registrando…";
 
-    window.onload = () => {
-        iniciarScanner();
-        actualizarTabla();
-    };
+  fetch(URL_API, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ nombre })
+  })
+  .then(r => r.json())
+  .then(resp => {
+    document.getElementById("status").textContent =
+      resp.status === "ok"
+      ? "✅ Asistencia registrada"
+      : "ℹ️ Ya registrado";
+    actualizarTabla();
+    setTimeout(iniciarScanner, 2000);
+  })
+  .catch(() => {
+    document.getElementById("status").textContent = "❌ Error de red";
+    setTimeout(iniciarScanner, 3000);
+  });
+}
+
+function actualizarTabla() {
+  fetch(URL_API)
+  .then(r => r.json())
+  .then(data => {
+    const tbody = document.querySelector("#tablaAsistencia tbody");
+    tbody.innerHTML = "";
+
+    let presentes = 0;
+    let ausentes = 0;
+
+    const hoy = new Date().toLocaleDateString("es-ES", {
+      day:"2-digit", month:"2-digit", year:"numeric"
+    });
+
+    const usuarios = data.usuarios.slice(1).map(u => u[0]);
+    const asistenciasHoy = data.asistencias.slice(1)
+      .filter(a => a[1] === hoy);
+
+    usuarios.forEach(nombre => {
+      const r = asistenciasHoy.find(a => a[0] === nombre);
+      const tr = document.createElement("tr");
+
+      if (r) {
+        presentes++;
+        tr.innerHTML = `<td>${nombre}</td><td>Presente</td><td>${r[1]}</td><td>${r[2]}</td>`;
+      } else {
+        ausentes++;
+        tr.innerHTML = `<td>${nombre}</td><td>Ausente</td><td>--</td><td>--</td>`;
+      }
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("totalPresentes").textContent = presentes;
+    document.getElementById("totalAusentes").textContent = ausentes;
+  });
+}
+
+window.onload = () => {
+  iniciarScanner();
+  actualizarTabla();
+};
 </script>
 
 </body>

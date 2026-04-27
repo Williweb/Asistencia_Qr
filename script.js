@@ -45,6 +45,12 @@ function actualizarTabla() {
   fetch(URL_API)
     .then(res => res.json())
     .then(data => {
+        const hoy = new Date().toLocaleDateString("es-ES", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric"
+});
+
       const tbody = document.querySelector("#tablaAsistencia tbody");
       tbody.innerHTML = "";
 

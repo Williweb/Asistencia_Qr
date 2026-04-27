@@ -1,20 +1,32 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Asistencia QR</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asistencia QR</title>
+    
+    <!-- Librerías desde CDN (Necesario para Apps Script) -->
+    <script src="https://unpkg.com"></script>
+    <script src="https://cloudflare.com"></script>
 
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- QR Scanner -->
-  <script src="libs/html5-qrcode.min.js"></script>
-
-  <!-- Excel -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f9; color: #333; }
+        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
+        .card { background: white; margin: 1rem auto; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); max-width: 800px; }
+        .dashboard-grid { display: flex; justify-content: space-around; margin: 1rem auto; max-width: 800px; }
+        .stat-card { background: #ecf0f1; padding: 1rem; border-radius: 8px; text-align: center; flex: 1; margin: 0 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-card h3 { margin: 0 0 0.5rem 0; color: #2c3e50; font-size: 1rem; }
+        .stat-card p { margin: 0; font-size: 1.5rem; font-weight: bold; }
+        .btn-download { background: #27ae60; color: white; border: none; padding: 0.8rem 1.2rem; border-radius: 6px; cursor: pointer; font-size: 1rem; margin: 1rem auto; display: block; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.8rem; border: 1px solid #ddd; text-align: center; }
+        thead { background: #34495e; color: white; }
+        #status { font-weight: bold; display: block; text-align: center; padding: 10px; color: #2c3e50; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+    </style>
 </head>
 <body>
-  html
+
 <header>
     <h1>Control de Asistencia</h1>
 </header>
@@ -31,12 +43,12 @@
 </div>
 
 <div class="card">
-    <span id="status">📷 Esperando cámara...</span>
-    <div id="reader" style="width: 100%;"></div>
+    <span id="status">📷 Cargando cámara...</span>
+    <div id="reader"></div>
     <button class="btn-download" onclick="descargarExcel()">Descargar Excel</button>
 </div>
 
-<div class="card">
+<div class="card" style="overflow-x: auto;">
     <table id="tablaAsistencia">
         <thead>
             <tr>
@@ -46,8 +58,104 @@
                 <th>Hora</th>
             </tr>
         </thead>
-        <tbody>
-            <!-- Los datos se cargan aquí -->
-        </tbody>
+        <tbody></tbody>
     </table>
 </div>
+
+<script>
+    // ⚠️ REEMPLAZA ESTA URL CON TU URL DE DESPLIEGUE REAL
+    const URL_API = "https://google.com";
+    
+    let scanner;
+
+    function iniciarScanner() {
+        if (!scanner) {
+            scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        }
+        
+        scanner.render(text => {
+            scanner.clear();
+            document.getElementById("status").textContent = "⏳ Registrando a: " + text;
+
+            fetch(URL_API, {
+                method: "POST",
+                body: JSON.stringify({ nombre: text })
+            })
+            .then(() => {
+                document.getElementById("status").textContent = "✅ " + text + " registrado";
+                actualizarTabla();
+                setTimeout(iniciarScanner, 3000); // Reiniciar tras 3 seg
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById("status").textContent = "❌ Error al registrar";
+                setTimeout(iniciarScanner, 5000);
+            });
+        });
+    }
+
+    function actualizarTabla() {
+        fetch(`${URL_API}?t=${new Date().getTime()}`)
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.querySelector("#tablaAsistencia tbody");
+                tbody.innerHTML = "";
+                
+                let presentes = 0;
+                // Ajuste para leer la estructura de tu Apps Script
+                const listaUsuarios = data.usuarios || [];
+                const asistencias = data.asistencias || [];
+
+                // Quitamos el encabezado si existe (ej: "Nombre")
+                const usuariosFiltrados = listaUsuarios.filter(u => u[0] !== "Nombre" && u[0] !== "");
+
+                usuariosFiltrados.forEach(fila => {
+                    const nombre = fila[0];
+                    const registro = asistencias.find(r => r.nombre === nombre);
+                    
+                    const tr = document.createElement("tr");
+                    if (registro) {
+                        presentes++;
+                        tr.innerHTML = `
+                            <td>${nombre}</td>
+                            <td style="color: #27ae60; font-weight:bold;">Presente</td>
+                            <td>${registro.fecha}</td>
+                            <td>${registro.hora}</td>
+                        `;
+                    } else {
+                        tr.innerHTML = `
+                            <td>${nombre}</td>
+                            <td style="color: #e74c3c;">Ausente</td>
+                            <td>--</td>
+                            <td>--</td>
+                        `;
+                    }
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById("totalPresentes").textContent = presentes;
+                document.getElementById("totalAusentes").textContent = usuariosFiltrados.length - presentes;
+                document.getElementById("status").textContent = "📷 Escáner listo";
+            })
+            .catch(err => console.error("Error cargando tabla:", err));
+    }
+
+    function descargarExcel() {
+        fetch(URL_API)
+            .then(res => res.json())
+            .then(data => {
+                const ws = XLSX.utils.json_to_sheet(data.asistencias || []);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
+                XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
+            });
+    }
+
+    window.onload = () => {
+        iniciarScanner();
+        actualizarTabla();
+    };
+</script>
+
+</body>
+</html>

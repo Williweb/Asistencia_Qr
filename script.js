@@ -6,36 +6,37 @@ let scanner;
  * INICIAR ESCÁNER
  *****************************************************/
 function iniciarScanner() {
-  scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-
-  scanner.render(text => {
-    scanner.clear();
-    document.getElementById("status").textContent = "⏳ Registrando...";
-
-    fetch(URL_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: text })
-    })
-    .then(res => res.json())
-    .then(result => {
-      if (result.status !== "ok") {
-        throw new Error(result.message || "No se pudo registrar");
-      }
-
-      document.getElementById("status").textContent =
-        "✅ OK - Asistencia registrada";
-
-      actualizarTabla();
-      setTimeout(iniciarScanner, 2500);
-    })
-    .catch(err => {
-      document.getElementById("status").textContent =
-        "❌ Error al registrar: " + err.message;
-      setTimeout(iniciarScanner, 4000);
+    scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+  
+    scanner.render(text => {
+      scanner.clear();
+      document.getElementById("status").textContent = "⏳ Registrando...";
+  
+      fetch(URL_API, {
+        method: "POST",
+        mode: "no-cors", // 🔑 CLAVE
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: text })
+      })
+      .then(() => {
+        document.getElementById("status").textContent =
+          "✅ Asistencia registrada";
+  
+        
+setTimeout(() => {
+    actualizarTabla();
+  }, 1000); // esperar a que el backend guarde
+  
+  setTimeout(iniciarScanner, 2500);
+  
+      })
+      .catch(() => {
+        document.getElementById("status").textContent =
+          "❌ Error de red";
+        setTimeout(iniciarScanner, 4000);
+      });
     });
-  });
-}
+  }
 
 /*****************************************************
  * ACTUALIZAR TABLA

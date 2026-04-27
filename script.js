@@ -1,4 +1,4 @@
-const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
+const URL_API = "https://script.google.com/macros/s/AKfycbxOCamzpbKrCJKZfd9VBSKJqnGlqhVTx1ZDCqElKgCgRUgmqljSpIPDuqVHfXqfmk1t/exec";
 
 let scanner;
 

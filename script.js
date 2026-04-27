@@ -6,110 +6,69 @@ let scanner;
  * INICIAR ESCÁNER
  *****************************************************/
 function iniciarScanner() {
-    scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-  
+    // Evita duplicar escáneres si ya existe uno
+    if (!scanner) {
+        scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    }
+    
     scanner.render(text => {
-      scanner.clear();
-      document.getElementById("status").textContent = "⏳ Registrando...";
-  
-      fetch(URL_API, {
-        method: "POST",
-        mode: "no-cors", // 🔑 CLAVE
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: text })
-      })
-      .then(() => {
-        document.getElementById("status").textContent =
-          "✅ Asistencia registrada";
-  
-        
-setTimeout(() => {
-    actualizarTabla();
-  }, 1000); // esperar a que el backend guarde
-  
-  setTimeout(iniciarScanner, 2500);
-  
-      })
-      .catch(() => {
-        document.getElementById("status").textContent =
-          "❌ Error de red";
-        setTimeout(iniciarScanner, 4000);
-      });
-    });
-  }
+        scanner.clear();
+        document.getElementById("status").textContent = "⏳ Registrando...";
 
-/*****************************************************
- * ACTUALIZAR TABLA
- *****************************************************/
+        // Eliminamos 'no-cors' para poder manejar la respuesta
+        fetch(URL_API, {
+            method: "POST",
+            body: JSON.stringify({ nombre: text }) 
+            // Nota: Apps Script a veces prefiere enviar como texto plano o URLSearchParams
+        })
+        .then(res => {
+            document.getElementById("status").textContent = "✅ Asistencia registrada";
+            setTimeout(() => {
+                actualizarTabla();
+                iniciarScanner(); // Reiniciar después de actualizar
+            }, 1500);
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("status").textContent = "❌ Error al conectar";
+            setTimeout(iniciarScanner, 4000);
+        });
+    });
+}
+
 function actualizarTabla() {
-  fetch(URL_API)
-    .then(res => res.json())
-    .then(data => {
-      const tbody = document.querySelector("#tablaAsistencia tbody");
-      tbody.innerHTML = "";
+    // Añadimos un timestamp para evitar cache del navegador
+    fetch(`${URL_API}?t=${new Date().getTime()}`)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.querySelector("#tablaAsistencia tbody");
+            tbody.innerHTML = "";
+            
+            let presentes = 0;
+            const usuarios = (data.usuarios || []).slice(1); // Saltar encabezado si existe
 
-      let presentes = 0;
-      let ausentes = 0;
+            usuarios.forEach(u => {
+                const nombre = u[0];
+                if(!nombre) return;
 
-      const usuarios = (data.usuarios || [])
-        .map(u => u[0])
-        .filter(n => n && n !== "Nombre");
+                const registro = (data.asistencias || []).find(r => r.nombre === nombre);
+                const tr = document.createElement("tr");
+                
+                if (registro) presentes++;
+                
+                tr.innerHTML = `
+                    <td>${nombre}</td>
+                    <td class="${registro ? 'text-success' : 'text-danger'}">${registro ? 'Presente' : 'Ausente'}</td>
+                    <td>${registro ? registro.fecha : '--'}</td>
+                    <td>${registro ? registro.hora : '--'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-      usuarios.forEach(usuario => {
-        const registro = (data.asistencias || [])
-          .find(r => r.nombre === usuario);
-
-        const tr = document.createElement("tr");
-
-        if (registro) {
-          presentes++;
-          tr.innerHTML = `
-            <td>${usuario}</td>
-            <td>Presente</td>
-            <td>${registro.fecha}</td>
-            <td>${registro.hora}</td>
-          `;
-        } else {
-          ausentes++;
-          tr.innerHTML = `
-            <td>${usuario}</td>
-            <td>Ausente</td>
-            <td>--</td>
-            <td>--</td>
-          `;
-        }
-
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById("totalPresentes").textContent = presentes;
-      document.getElementById("totalAusentes").textContent = ausentes;
-    })
-    .catch(err => {
-      document.getElementById("status").textContent =
-        "❌ Error al cargar datos: " + err.message;
-    });
+            document.getElementById("totalPresentes").textContent = presentes;
+            document.getElementById("totalAusentes").textContent = usuarios.length - presentes;
+        })
+        .catch(err => {
+            console.error("Error tabla:", err);
+        });
 }
-
-/*****************************************************
- * DESCARGAR EXCEL
- *****************************************************/
-function descargarExcel() {
-  fetch(URL_API)
-    .then(res => res.json())
-    .then(data => {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(data.asistencias || []);
-      XLSX.utils.book_append_sheet(wb, ws, "Registro");
-      XLSX.writeFile(wb, "Reporte_Asistencia.xlsx");
-    });
-}
-
-/*****************************************************
- * INIT
- *****************************************************/
-window.onload = () => {
-  iniciarScanner();
-  actualizarTabla();
-};
-``

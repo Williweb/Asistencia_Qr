@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistencia QR</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Librería para escanear QR -->
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
+    <!-- Librería para exportar a Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <header><h1>📊 Dashboard de Asistencia</h1></header>
+    <main>
+        <section class="card">
+            <h2>Escanear QR</h2>
+            <div id="reader" style="width: 100%; min-height: 300px; background: #eee;"></div>
+            <p id="status" style="font-weight: bold; color: blue;">Cargando sistema...</p>
+        </section>
+
+        <section class="dashboard-grid">
+            <div class="stat-card"><h3>Presentes</h3><p id="totalPresentes">0</p></div>
+            <div class="stat-card"><h3>Ausentes</h3><p id="totalAusentes">0</p></div>
+            <button onclick="descargarExcel()" class="btn-download">📥 Reporte Excel</button>
+        </section>
+
+        <section class="card">
+            <h2>Lista de hoy</h2>
+            <table id="tablaAsistencia">
+                <thead><tr><th>Nombre</th><th>Estado</th><th>Hora</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </main>
+
+    <!-- Tu script principal -->
+    <script src="script.js"></script>
+</body>
+</html>

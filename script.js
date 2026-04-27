@@ -13,7 +13,8 @@ function iniciarScanner() {
 
   scanner.render(text => {
     scanner.clear();
-    document.getElementById("status").textContent = "⏳ Registrando asistencia...";
+    document.getElementById("status").textContent =
+      "⏳ Registrando asistencia...";
 
     fetch(URL_API, {
       method: "POST",
@@ -22,7 +23,7 @@ function iniciarScanner() {
     })
       .then(res => res.json())
       .then(resp => {
-        console.log("Respuesta POST:", resp);
+        console.log("POST:", resp);
 
         if (resp.status === "ok") {
           document.getElementById("status").textContent =
@@ -32,29 +33,29 @@ function iniciarScanner() {
             "ℹ️ Ya registró asistencia hoy";
         } else {
           document.getElementById("status").textContent =
-            "⚠️ Error al registrar";
+            "⚠️ Error";
         }
 
         setTimeout(actualizarTabla, 500);
-        setTimeout(() => iniciarScanner(), 2000);
+        setTimeout(iniciarScanner, 2000);
       })
       .catch(err => {
         console.error(err);
         document.getElementById("status").textContent =
-          "❌ Error de red";
-        setTimeout(() => iniciarScanner(), 3000);
+          "❌ Error fetch";
+        setTimeout(iniciarScanner, 3000);
       });
   });
 }
 
 /*****************************************************
- * ACTUALIZAR TABLA Y DASHBOARD
+ * ACTUALIZAR DASHBOARD Y TABLA
  *****************************************************/
 function actualizarTabla() {
   fetch(URL_API)
     .then(res => res.json())
     .then(data => {
-      console.log("GET DATA:", data);
+      console.log("GET:", data);
 
       const tbody = document.querySelector("#tablaAsistencia tbody");
       tbody.innerHTML = "";
@@ -62,33 +63,30 @@ function actualizarTabla() {
       let presentes = 0;
       let ausentes = 0;
 
-      // 📅 Fecha de hoy en el MISMO FORMATO que Apps Script (dd/MM/yyyy)
       const hoy = new Date().toLocaleDateString("es-ES", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric"
       });
 
-      // 👤 Usuarios
       const usuarios = data.usuarios
-        .slice(1) // quitar encabezado
+        .slice(1)
         .map(u => u[0])
         .filter(Boolean);
 
-      // 📋 Asistencias de HOY convertidas a objetos
       const asistenciasHoy = data.asistencias
         .slice(1)
         .map(r => ({
           nombre: r[0],
           fecha: r[1],
-          hora: r[2],
-          estado: r[3]
+          hora: r[2]
         }))
         .filter(r => r.fecha === hoy);
 
       usuarios.forEach(nombre => {
         const registro = asistenciasHoy.find(
-          r => r.nombre.trim().toLowerCase() === nombre.trim().toLowerCase()
+          r => r.nombre.trim().toLowerCase() ===
+               nombre.trim().toLowerCase()
         );
 
         const tr = document.createElement("tr");
@@ -125,7 +123,7 @@ function actualizarTabla() {
 }
 
 /*****************************************************
- * DESCARGAR REPORTE EXCEL
+ * DESCARGAR EXCEL
  *****************************************************/
 function descargarExcel() {
   fetch(URL_API)
@@ -152,5 +150,4 @@ window.onload = () => {
   iniciarScanner();
   actualizarTabla();
 };
-``
 

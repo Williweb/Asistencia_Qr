@@ -99,51 +99,22 @@
 });
     }
 
-    function actualizarTabla() {
-        fetch(`${URL_API}?t=${new Date().getTime()}`)
-            .then(res => res.json())
-            .then(data => {
-                const tbody = document.querySelector("#tablaAsistencia tbody");
-                tbody.innerHTML = "";
-                
-                let presentes = 0;
-                // Ajuste para leer la estructura de tu Apps Script
-                const listaUsuarios = data.usuarios || [];
-                const asistencias = data.asistencias || [];
-
-                // Quitamos el encabezado si existe (ej: "Nombre")
-                const usuariosFiltrados = listaUsuarios.filter(u => u[0] !== "Nombre" && u[0] !== "");
-
-                usuariosFiltrados.forEach(fila => {
-                    const nombre = fila[0];
-                    const registro = asistencias.find(r => r.nombre === nombre);
-                    
-                    const tr = document.createElement("tr");
-                    if (registro) {
-                        presentes++;
-                        tr.innerHTML = `
-                            <td>${nombre}</td>
-                            <td style="color: #27ae60; font-weight:bold;">Presente</td>
-                            <td>${registro.fecha}</td>
-                            <td>${registro.hora}</td>
-                        `;
-                    } else {
-                        tr.innerHTML = `
-                            <td>${nombre}</td>
-                            <td style="color: #e74c3c;">Ausente</td>
-                            <td>--</td>
-                            <td>--</td>
-                        `;
-                    }
-                    tbody.appendChild(tr);
-                });
-
-                document.getElementById("totalPresentes").textContent = presentes;
-                document.getElementById("totalAusentes").textContent = usuariosFiltrados.length - presentes;
-                document.getElementById("status").textContent = "📷 Escáner listo";
-            })
-            .catch(err => console.error("Error cargando tabla:", err));
-    }
+   function actualizarTabla() {
+    // IMPORTANTE: No uses encabezados personalizados aquí
+    fetch(URL_API) 
+        .then(res => {
+            if (!res.ok) throw new Error('Error en red');
+            return res.json();
+        })
+        .then(data => {
+            // ... resto de tu lógica para llenar la tabla ...
+            console.log("Datos recibidos:", data);
+        })
+        .catch(err => {
+            console.error("Error cargando tabla:", err);
+            // Si sale CORS aquí, es que la URL_API está mal o no está publicada correctamente
+        });
+}
 
     function descargarExcel() {
         fetch(URL_API)

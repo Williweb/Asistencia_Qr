@@ -100,20 +100,27 @@
     }
 
    function actualizarTabla() {
-    // IMPORTANTE: No uses encabezados personalizados aquí
-    fetch(URL_API) 
-        .then(res => {
-            if (!res.ok) throw new Error('Error en red');
-            return res.json();
-        })
-        .then(data => {
-            // ... resto de tu lógica para llenar la tabla ...
-            console.log("Datos recibidos:", data);
-        })
-        .catch(err => {
-            console.error("Error cargando tabla:", err);
-            // Si sale CORS aquí, es que la URL_API está mal o no está publicada correctamente
-        });
+    // Agregamos un timestamp para evitar que Google devuelva datos viejos (cache)
+    const urlConCache = URL_API + "?t=" + new Date().getTime();
+
+    fetch(urlConCache, {
+        method: "GET",
+        mode: "cors", // Forzamos el modo cors
+        headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Respuesta no ok');
+        return res.json();
+    })
+    .then(data => {
+        console.log("Datos recibidos:", data);
+        // ... aquí va tu código para llenar la tabla (tbody.innerHTML, etc)
+    })
+    .catch(err => {
+        console.error("Error de CORS o Red:", err);
+    });
 }
 
     function descargarExcel() {

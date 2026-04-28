@@ -111,38 +111,46 @@
     }
 
     // 3. ACTUALIZAR TABLA
-    function actualizarTabla() {
-        fetch(`${URL_API}?t=${new Date().getTime()}`)
-            .then(res => res.json())
-            .then(data => {
-                const tbody = document.querySelector("#tablaAsistencia tbody");
-                tbody.innerHTML = "";
-                let presentes = 0;
+   function actualizarTabla() {
+    fetch(`${URL_API}?t=${new Date().getTime()}`)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.querySelector("#tablaAsistencia tbody");
+            tbody.innerHTML = "";
+            
+            let presentes = 0;
+            const usuarios = data.usuarios || [];
+            const asistencias = data.asistencias || [];
 
-                const listaUsuarios = data.usuarios || [];
-                const asistencias = data.asistencias || [];
+            usuarios.forEach(nombre => {
+                // Buscamos si este usuario tiene un registro de asistencia
+                const registro = asistencias.find(a => a.nombre === nombre);
+                const tr = document.createElement("tr");
 
-                listaUsuarios.forEach(u => {
-                    const nombre = Array.isArray(u) ? u[0] : u;
-                    if (!nombre || nombre === "Nombre") return;
+                if (registro) {
+                    presentes++;
+                    tr.innerHTML = `
+                        <td>${nombre}</td>
+                        <td class="presente">Presente</td>
+                        <td>${registro.fecha}</td>
+                        <td>${registro.hora}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td>${nombre}</td>
+                        <td class="ausente">Ausente</td>
+                        <td>--</td>
+                        <td>--</td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            });
 
-                    const registro = asistencias.find(a => a.nombre === nombre);
-                    const tr = document.createElement("tr");
-
-                    if (registro) {
-                        presentes++;
-                        tr.innerHTML = `<td>${nombre}</td><td class="presente">Presente</td><td>${registro.fecha} ${registro.hora}</td>`;
-                    } else {
-                        tr.innerHTML = `<td>${nombre}</td><td class="ausente">Ausente</td><td>--</td>`;
-                    }
-                    tbody.appendChild(tr);
-                });
-
-                document.getElementById("totalPresentes").textContent = presentes;
-                document.getElementById("totalAusentes").textContent = listaUsuarios.length - 1 - presentes;
-            })
-            .catch(e => console.log("Cargando datos..."));
-    }
+            document.getElementById("totalPresentes").textContent = presentes;
+            document.getElementById("totalAusentes").textContent = usuarios.length - presentes;
+        })
+        .catch(err => console.error("Error al cargar la tabla:", err));
+}
 
     // 4. EXPORTAR
     function exportarExcel() {

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control de Asistencia</title>
 
-<!-- ✅ LIBRERÍAS BIEN CARGADAS -->
- <script src="libs/html5-qrcode.min.js"></script>
+<!-- ✅ LIBRERÍAS CORRECTAS -->
+<script src="https://unpkg.com/html5-qrcode@2.3.9/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
@@ -119,8 +119,9 @@ button {
 </div>
 
 <script>
-/* ✅ URL DE TU APPS SCRIPT */
-const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
+/* ✅ URL DE TU APPS SCRIPT (YA CONFIRMADA) */
+const URL_API =
+"https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
 
 let scanner = null;
 
@@ -138,9 +139,9 @@ function iniciarScanner() {
   scanner.render(texto => registrar(texto));
 }
 
-/* ✅ REGISTRAR */
+/* ✅ REGISTRAR ASISTENCIA */
 function registrar(nombre) {
-  scanner.clear().catch(()=>{});
+  scanner.clear().catch(() => {});
   document.getElementById("status").textContent = "⏳ Registrando...";
 
   fetch(URL_API, {
@@ -158,7 +159,8 @@ function registrar(nombre) {
     actualizarTabla();
 
     setTimeout(() => {
-      document.getElementById("status").textContent = "📷 Escanee el código QR";
+      document.getElementById("status").textContent =
+        "📷 Escanee el código QR";
       iniciarScanner();
     }, 2000);
   })
@@ -168,7 +170,7 @@ function registrar(nombre) {
   });
 }
 
-/* ✅ TABLA + CONTADORES */
+/* ✅ ACTUALIZAR TABLA Y CONTADORES */
 function actualizarTabla() {
   fetch(URL_API)
     .then(r => r.json())
@@ -182,7 +184,9 @@ function actualizarTabla() {
       let ausentes = 0;
 
       const hoy = new Date().toLocaleDateString("es-ES", {
-        day:"2-digit", month:"2-digit", year:"numeric"
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
       });
 
       data.usuarios.forEach(nombre => {
@@ -211,4 +215,8 @@ function actualizarTabla() {
         tbody.appendChild(tr);
       });
 
-      totalPresentes.textContent = presentes;
+      document.getElementById("totalPresentes").textContent = presentes;
+      document.getElementById("totalAusentes").textContent = ausentes;
+    });
+}
+

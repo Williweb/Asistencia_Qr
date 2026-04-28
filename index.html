@@ -132,7 +132,12 @@ const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz
 let scanner;
 
 /* ✅ INICIAR QR */
+
 function iniciarScanner() {
+  if (scanner) {
+    scanner.clear().catch(() => {});
+  }
+
   scanner = new Html5QrcodeScanner("reader", {
     fps: 10,
     qrbox: 250
@@ -142,7 +147,6 @@ function iniciarScanner() {
 
 /* ✅ REGISTRAR ASISTENCIA */
 function registrar(nombre) {
-  scanner.pause();
   document.getElementById("status").textContent = "⏳ Registrando...";
 
   fetch(URL_API, {
@@ -162,6 +166,22 @@ function registrar(nombre) {
       document.getElementById("status").textContent =
         "❌ Error";
     }
+
+    actualizarTabla();
+
+    setTimeout(() => {
+      document.getElementById("status").textContent =
+        "📷 Escanee el código QR";
+      iniciarScanner();
+    }, 2000);
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("status").textContent =
+      "❌ Error de red";
+    setTimeout(iniciarScanner, 3000);
+  });
+}
 
     actualizarTabla();
     setTimeout(() => scanner.resume(), 2000);

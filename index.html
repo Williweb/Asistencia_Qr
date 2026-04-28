@@ -5,33 +5,92 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control de Asistencia</title>
 
-<!-- QR -->
+<!-- ✅ LIBRERÍAS CORRECTAS -->
 <script src="libs/html5-qrcode.min.js"></script>
-
-<!-- Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-body { font-family: Arial; background:#f4f6f9; margin:0 }
-header { background:#2c3e50; color:#fff; padding:1rem; text-align:center }
-.card { background:#fff; margin:1rem auto; padding:1rem; max-width:900px; border-radius:8px }
-.dashboard-grid { display:flex; justify-content:space-around; max-width:900px; margin:auto }
-.stat-card { background:#ecf0f1; padding:1rem; flex:1; margin:.5rem; text-align:center }
-table { width:100%; border-collapse:collapse; margin-top:1rem }
-th,td { border:1px solid #ccc; padding:.5rem; text-align:center }
-thead { background:#34495e; color:#fff }
-#status { text-align:center; font-weight:bold; margin:.5rem }
-.presente { color:green; font-weight:bold }
-.ausente { color:red; font-weight:bold }
-button { padding:.6rem 1.2rem; cursor:pointer }
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f6f9;
+  margin:0;
+}
+
+header {
+  background:#2c3e50;
+  color:#fff;
+  padding:1rem;
+  text-align:center;
+}
+
+.card {
+  background:#fff;
+  margin:1rem auto;
+  padding:1rem;
+  max-width:900px;
+  border-radius:8px;
+}
+
+.dashboard-grid {
+  display:flex;
+  justify-content:space-around;
+  max-width:900px;
+  margin:auto;
+}
+
+.stat-card {
+  background:#ecf0f1;
+  padding:1rem;
+  flex:1;
+  margin:.5rem;
+  text-align:center;
+}
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  margin-top:1rem;
+}
+
+th, td {
+  border:1px solid #ccc;
+  padding:.5rem;
+  text-align:center;
+}
+
+thead {
+  background:#34495e;
+  color:#fff;
+}
+
+#status {
+  text-align:center;
+  font-weight:bold;
+  margin:.5rem;
+}
+
+.presente {
+  color:green;
+  font-weight:bold;
+}
+
+.ausente {
+  color:red;
+  font-weight:bold;
+}
+
+button {
+  padding:.6rem 1.2rem;
+  cursor:pointer;
+  margin-bottom:1rem;
+}
 </style>
 </head>
-
 
 <body>
 
 <header>
-<h1>Control de Asistencia</h1>
+  <h1>Control de Asistencia</h1>
 </header>
 
 <div class="dashboard-grid">
@@ -46,7 +105,7 @@ button { padding:.6rem 1.2rem; cursor:pointer }
 </div>
 
 <div class="card">
-  <div id="status">📷 Escanee el QR</div>
+  <div id="status">📷 Escanee el código QR</div>
   <div id="reader"></div>
 </div>
 
@@ -67,14 +126,21 @@ button { padding:.6rem 1.2rem; cursor:pointer }
 </div>
 
 <script>
-const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
+/* 🔴 PEGA AQUÍ TU URL DEL APPS SCRIPT */
+const URL_API = "PEGA_AQUI_TU_URL_DEL_SCRIPT";
+
 let scanner;
 
+/* ✅ INICIAR QR */
 function iniciarScanner() {
-  scanner = new Html5QrcodeScanner("reader", { fps:10, qrbox:250 });
+  scanner = new Html5QrcodeScanner("reader", {
+    fps: 10,
+    qrbox: 250
+  });
   scanner.render(text => registrar(text));
 }
 
+/* ✅ REGISTRAR ASISTENCIA */
 function registrar(nombre) {
   scanner.pause();
   document.getElementById("status").textContent = "⏳ Registrando...";
@@ -84,28 +150,37 @@ function registrar(nombre) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ nombre })
   })
-  .then(r => r.json())
+  .then(res => res.json())
   .then(resp => {
-    document.getElementById("status").textContent =
-      resp.status === "ok"
-      ? "✅ Asistencia registrada"
-      : "ℹ️ Ya registrado";
+    if (resp.status === "ok") {
+      document.getElementById("status").textContent =
+        "✅ Asistencia registrada";
+    } else if (resp.status === "exists") {
+      document.getElementById("status").textContent =
+        "ℹ️ Ya registrado hoy";
+    } else {
+      document.getElementById("status").textContent =
+        "❌ Error";
+    }
 
     actualizarTabla();
     setTimeout(() => scanner.resume(), 2000);
   })
-  .catch(() => {
-    document.getElementById("status").textContent = "❌ Error";
+  .catch(err => {
+    console.error(err);
+    document.getElementById("status").textContent =
+      "❌ Error de red";
     setTimeout(() => scanner.resume(), 3000);
   });
 }
 
+/* ✅ ACTUALIZAR TABLA */
 function actualizarTabla() {
   fetch(URL_API)
     .then(res => res.json())
     .then(data => {
 
-      console.log("RESPUESTA API:", data); // 👈 CLAVE PARA DEBUG
+      console.log("RESPUESTA API:", data);
 
       if (!data || !Array.isArray(data.usuarios)) {
         document.getElementById("status").textContent =
@@ -126,58 +201,7 @@ function actualizarTabla() {
       });
 
       data.usuarios.forEach(nombre => {
-        const a = (data.asistencias || []).find(x =>
-          x.nombre === nombre && x.fecha === hoy
-        );
-
-        const tr = document.createElement("tr");
-
-        if (a) {
-          presentes++;
-          tr.innerHTML = `
-            <td>${nombre}</td>
-            <td class="presente">Presente</td>
-            <td>${a.fecha}</td>
-            <td>${a.hora}</td>
-          `;
-        } else {
-          ausentes++;
-          tr.innerHTML = `
-            <td>${nombre}</td>
-            <td class="ausente">Ausente</td>
-            <td>--</td>
-            <td>--</td>
-          `;
-        }
-
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById("totalPresentes").textContent = presentes;
-      document.getElementById("totalAusentes").textContent = ausentes;
-    })
-    .catch(err => {
-      console.error(err);
-      document.getElementById("status").textContent =
-        "❌ Error de comunicación";
-    });
-}
-
-
-      const tbody = document.querySelector("#tablaAsistencia tbody");
-      tbody.innerHTML = "";
-
-      let presentes = 0;
-      let ausentes = 0;
-
-      const hoy = new Date().toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-      });
-
-      data.usuarios.forEach(nombre => {
-        const asistencia = data.asistencias.find(a =>
+        const asistencia = (data.asistencias || []).find(a =>
           a.nombre === nombre && a.fecha === hoy
         );
 
@@ -213,17 +237,15 @@ function actualizarTabla() {
         "❌ No se pudo cargar la asistencia";
     });
 }
-      document.getElementById("totalPresentes").textContent = presentes;
-      document.getElementById("totalAusentes").textContent = ausentes;
-    });
-}
 
+/* ✅ EXPORTAR EXCEL */
 function exportarExcel() {
   const table = document.getElementById("tablaAsistencia");
   const wb = XLSX.utils.table_to_book(table, { sheet: "Asistencia" });
   XLSX.writeFile(wb, "asistencia.xlsx");
 }
 
+/* ✅ CARGA INICIAL */
 window.onload = () => {
   iniciarScanner();
   actualizarTabla();

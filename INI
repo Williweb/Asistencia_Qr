@@ -142,12 +142,16 @@ function iniciarScanner() {
     fps: 10,
     qrbox: 250
   });
+
   scanner.render(text => registrar(text));
 }
 
 /* ✅ REGISTRAR ASISTENCIA */
 function registrar(nombre) {
   document.getElementById("status").textContent = "⏳ Registrando...";
+
+  // 🔴 DETENER SCANEO
+  scanner.clear().catch(() => {});
 
   fetch(URL_API, {
     method: "POST",
@@ -167,6 +171,22 @@ function registrar(nombre) {
         "❌ Error";
     }
 
+    actualizarTabla();
+
+    // ✅ REACTIVAR ESCÁNER
+    setTimeout(() => {
+      document.getElementById("status").textContent =
+        "📷 Escanee el código QR";
+      iniciarScanner();
+    }, 2000);
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("status").textContent =
+      "❌ Error de red";
+    setTimeout(iniciarScanner, 3000);
+  });
+}
     actualizarTabla();
 
     setTimeout(() => {

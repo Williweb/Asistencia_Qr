@@ -102,15 +102,67 @@ function registrar(nombre) {
 
 function actualizarTabla() {
   fetch(URL_API)
-    .then(r => r.json())
+    .then(res => res.json())
     .then(data => {
 
-      if (!data.usuarios || !Array.isArray(data.usuarios)) {
-        console.error("Respuesta inválida del servidor:", data);
+      console.log("RESPUESTA API:", data); // 👈 CLAVE PARA DEBUG
+
+      if (!data || !Array.isArray(data.usuarios)) {
         document.getElementById("status").textContent =
-          "❌ Error al cargar usuarios";
+          "❌ Error: usuarios no disponibles";
         return;
       }
+
+      const tbody = document.querySelector("#tablaAsistencia tbody");
+      tbody.innerHTML = "";
+
+      let presentes = 0;
+      let ausentes = 0;
+
+      const hoy = new Date().toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      });
+
+      data.usuarios.forEach(nombre => {
+        const a = (data.asistencias || []).find(x =>
+          x.nombre === nombre && x.fecha === hoy
+        );
+
+        const tr = document.createElement("tr");
+
+        if (a) {
+          presentes++;
+          tr.innerHTML = `
+            <td>${nombre}</td>
+            <td class="presente">Presente</td>
+            <td>${a.fecha}</td>
+            <td>${a.hora}</td>
+          `;
+        } else {
+          ausentes++;
+          tr.innerHTML = `
+            <td>${nombre}</td>
+            <td class="ausente">Ausente</td>
+            <td>--</td>
+            <td>--</td>
+          `;
+        }
+
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("totalPresentes").textContent = presentes;
+      document.getElementById("totalAusentes").textContent = ausentes;
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("status").textContent =
+        "❌ Error de comunicación";
+    });
+}
+
 
       const tbody = document.querySelector("#tablaAsistencia tbody");
       tbody.innerHTML = "";

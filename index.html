@@ -97,17 +97,52 @@ fetch(URL_API, {
 
 function actualizarTabla() {
   fetch(URL_API)
-  .then(r => r.json())
-  .then(data => {
-    const tbody = document.querySelector("#tablaAsistencia tbody");
-    tbody.innerHTML = "";
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.querySelector("#tablaAsistencia tbody");
+      tbody.innerHTML = "";
 
-    let presentes = 0;
-    let ausentes = 0;
+      let presentes = 0;
+      let ausentes = 0;
 
-    const hoy = new Date().toLocaleDateString("es-ES", {
-      day:"2-digit", month:"2-digit", year:"numeric"
+      const hoy = new Date().toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      });
+
+      data.usuarios.forEach(nombre => {
+        const asistenciaHoy = data.asistencias.find(a =>
+          a.nombre === nombre && a.fecha === hoy
+        );
+
+        const tr = document.createElement("tr");
+
+        if (asistenciaHoy) {
+          presentes++;
+          tr.innerHTML = `
+            <td>${nombre}</td>
+            <td style="color:green;font-weight:bold">Presente</td>
+            <td>${asistenciaHoy.fecha}</td>
+            <td>${asistenciaHoy.hora}</td>
+          `;
+        } else {
+          ausentes++;
+          tr.innerHTML = `
+            <td>${nombre}</td>
+            <td style="color:red;font-weight:bold">Ausente</td>
+            <td>--</td>
+            <td>--</td>
+          `;
+        }
+
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("totalPresentes").textContent = presentes;
+      document.getElementById("totalAusentes").textContent = ausentes;
     });
+}
 
     const usuarios = data.usuarios.slice(1).map(u => u[0]);
     const asistenciasHoy = data.asistencias.slice(1)

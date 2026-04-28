@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Asistencia QR</title>
+<title>Control de Asistencia</title>
 
 <script src="libs/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -11,13 +11,16 @@
 <style>
 body { font-family: Arial; background:#f4f6f9; margin:0 }
 header { background:#2c3e50; color:#fff; padding:1rem; text-align:center }
-.card { background:#fff; margin:1rem auto; padding:1rem; max-width:800px; border-radius:8px }
-.dashboard-grid { display:flex; justify-content:space-around; max-width:800px; margin:auto }
+.card { background:#fff; margin:1rem auto; padding:1rem; max-width:900px; border-radius:8px }
+.dashboard-grid { display:flex; justify-content:space-around; max-width:900px; margin:auto }
 .stat-card { background:#ecf0f1; padding:1rem; flex:1; margin:.5rem; text-align:center }
-table { width:100%; border-collapse:collapse }
+table { width:100%; border-collapse:collapse; margin-top:1rem }
 th,td { border:1px solid #ccc; padding:.5rem; text-align:center }
 thead { background:#34495e; color:#fff }
 #status { text-align:center; font-weight:bold; margin:.5rem }
+button { padding:.7rem 1.5rem; margin:1rem; cursor:pointer }
+.presente { color:green; font-weight:bold }
+.ausente { color:red; font-weight:bold }
 </style>
 </head>
 
@@ -28,39 +31,39 @@ thead { background:#34495e; color:#fff }
 </header>
 
 <div class="dashboard-grid">
-<div class="stat-card">
-<h3>Presentes</h3>
-<p id="totalPresentes">0</p>
-</div>
-<div class="stat-card">
-<h3>Ausentes</h3>
-<p id="totalAusentes">0</p>
-</div>
-</div>
-
-<div class="card">
-<div id="status">📷 Iniciando cámara…</div>
-<div id="reader"></div>
+  <div class="stat-card">
+    <h3>Presentes</h3>
+    <p id="totalPresentes">0</p>
+  </div>
+  <div class="stat-card">
+    <h3>Ausentes</h3>
+    <p id="totalAusentes">0</p>
+  </div>
 </div>
 
 <div class="card">
-<table id="tablaAsistencia">
-<thead>
-<tr>
-<th>Nombre</th>
-<th>Estado</th>
-<th>Fecha</th>
-<th>Hora</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+  <div id="status">📷 Escanee el QR</div>
+  <div id="reader"></div>
 </div>
- 
+
+<div class="card">
+  <button onclick="exportarExcel()">📥 Descargar Excel</button>
+
+  <table id="tablaAsistencia">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Estado</th>
+        <th>Fecha</th>
+        <th>Hora</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script>
 const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
-
 let scanner;
 
 function iniciarScanner() {
@@ -69,30 +72,27 @@ function iniciarScanner() {
 }
 
 function registrar(nombre) {
-  scanner.clear();
-  document.getElementById("status").textContent = "⏳ Registrando…";
+  scanner.pause();
+  document.getElementById("status").textContent = "⏳ Registrando...";
 
-  
-fetch(URL_API, {
-  method: "POST",
-  headers: {
-    "Content-Type": "text/plain;charset=utf-8"
-  },
-  body: JSON.stringify({ nombre })
-})
-
+  fetch(URL_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nombre })
+  })
   .then(r => r.json())
   .then(resp => {
     document.getElementById("status").textContent =
       resp.status === "ok"
       ? "✅ Asistencia registrada"
       : "ℹ️ Ya registrado";
+
     actualizarTabla();
-    setTimeout(iniciarScanner, 2000);
+    setTimeout(() => scanner.resume(), 2000);
   })
   .catch(() => {
-    document.getElementById("status").textContent = "❌ Error de red";
-    setTimeout(iniciarScanner, 3000);
+    document.getElementById("status").textContent = "❌ Error";
+    setTimeout(() => scanner.resume(), 3000);
   });
 }
 
@@ -103,40 +103,31 @@ function actualizarTabla() {
       const tbody = document.querySelector("#tablaAsistencia tbody");
       tbody.innerHTML = "";
 
-      let presentes = 0;
-      let ausentes = 0;
-
-      const hoy = new Date().toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-      });
+      let presentes = 0, ausentes = 0;
+      const hoy = new Date().toLocaleDateString("es-ES");
 
       data.usuarios.forEach(nombre => {
-        const asistenciaHoy = data.asistencias.find(a =>
-          a.nombre === nombre && a.fecha === hoy
+        const a = data.asistencias.find(x =>
+          x.nombre === nombre && x.fecha === hoy
         );
 
         const tr = document.createElement("tr");
 
-        if (asistenciaHoy) {
+        if (a) {
           presentes++;
           tr.innerHTML = `
             <td>${nombre}</td>
-            <td style="color:green;font-weight:bold">Presente</td>
-            <td>${asistenciaHoy.fecha}</td>
-            <td>${asistenciaHoy.hora}</td>
-          `;
+            <td class="presente">Presente</td>
+            <td>${a.fecha}</td>
+            <td>${a.hora}</td>`;
         } else {
           ausentes++;
           tr.innerHTML = `
             <td>${nombre}</td>
-            <td style="color:red;font-weight:bold">Ausente</td>
+            <td class="ausente">Ausente</td>
             <td>--</td>
-            <td>--</td>
-          `;
+            <td>--</td>`;
         }
-
         tbody.appendChild(tr);
       });
 
@@ -145,27 +136,10 @@ function actualizarTabla() {
     });
 }
 
-    const usuarios = data.usuarios.slice(1).map(u => u[0]);
-    const asistenciasHoy = data.asistencias.slice(1)
-      .filter(a => a[1] === hoy);
-
-    usuarios.forEach(nombre => {
-      const r = asistenciasHoy.find(a => a[0] === nombre);
-      const tr = document.createElement("tr");
-
-      if (r) {
-        presentes++;
-        tr.innerHTML = `<td>${nombre}</td><td>Presente</td><td>${r[1]}</td><td>${r[2]}</td>`;
-      } else {
-        ausentes++;
-        tr.innerHTML = `<td>${nombre}</td><td>Ausente</td><td>--</td><td>--</td>`;
-      }
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById("totalPresentes").textContent = presentes;
-    document.getElementById("totalAusentes").textContent = ausentes;
-  });
+function exportarExcel() {
+  const table = document.getElementById("tablaAsistencia");
+  const wb = XLSX.utils.table_to_book(table, { sheet: "Asistencia" });
+  XLSX.writeFile(wb, "asistencia.xlsx");
 }
 
 window.onload = () => {

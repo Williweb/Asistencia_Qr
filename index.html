@@ -113,19 +113,33 @@
     }
 
     // 3. ACTUALIZAR TABLA
-  function actualizarTabla() {
+  <script>
+function actualizarTabla() {
     fetch(`${URL_API}?t=${new Date().getTime()}`)
         .then(res => res.json())
         .then(data => {
             const tbody = document.querySelector("#tablaAsistencia tbody");
             tbody.innerHTML = "";
+
             let presentes = 0;
-            
+
             const usuarios = data.usuarios || [];
             const asistencias = data.asistencias || [];
 
+            // ✅ FECHA DE HOY (dd/mm/yyyy)
+            const hoy = new Date();
+            const fechaHoy =
+                String(hoy.getDate()).padStart(2, "0") + "/" +
+                String(hoy.getMonth() + 1).padStart(2, "0") + "/" +
+                hoy.getFullYear();
+
             usuarios.forEach(nombre => {
-                const registro = asistencias.find(a => a.nombre === nombre);
+
+                // ✅ BUSCAR ASISTENCIA SOLO DEL DÍA DE HOY
+                const registro = asistencias.find(a =>
+                    a.nombre === nombre && a.fecha === fechaHoy
+                );
+
                 const tr = document.createElement("tr");
 
                 if (registro) {
@@ -144,6 +158,7 @@
                         <td>--</td>
                     `;
                 }
+
                 tbody.appendChild(tr);
             });
 
@@ -151,6 +166,7 @@
             document.getElementById("totalAusentes").textContent = usuarios.length - presentes;
         });
 }
+</script>
 
     // 4. EXPORTAR
     function exportarExcel() {

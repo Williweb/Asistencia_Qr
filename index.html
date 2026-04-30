@@ -67,14 +67,13 @@
 const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
 let html5QrcodeScanner;
 
-// 1. INICIAR EL ESCÁNER
+// 1. INICIAR ESCÁNER
 function iniciarScanner() {
-    html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
     });
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    html5QrcodeScanner.render(onScanSuccess);
 }
 
 function onScanSuccess(decodedText) {
@@ -82,31 +81,24 @@ function onScanSuccess(decodedText) {
     registrarAsistencia(decodedText);
 }
 
-function onScanFailure(error) {}
-
-// 2. REGISTRAR EN GOOGLE SHEETS
+// 2. REGISTRAR ASISTENCIA
 function registrarAsistencia(nombre) {
-    document.getElementById("status").textContent = "⏳ Registrando: " + nombre;
-    document.getElementById("status").style.background = "#fff3cd";
-
     fetch(URL_API, {
         method: "POST",
         mode: "no-cors",
-        body: JSON.stringify({ nombre })
-    })
-    .then(() => {
-        document.getElementById("status").textContent = "✅ " + nombre + " registrado";
-        document.getElementById("status").style.background = "#d4edda";
+        body: JSON.stringify({ nombre: nombre })
+    }).then(function () {
         actualizarTabla();
-        setTimeout(iniciarScanner, 3000);
+        setTimeout(iniciarScanner, 2000);
     });
 }
 
 // 3. ACTUALIZAR TABLA (SOLO HOY)
 function actualizarTabla() {
-    fetch(`${URL_API}?t=${Date.now()}`)
-        .then(res => res.json())
-        .then(data => {
+    fetch(URL_API)
+        .then(response => response.json())
+        .then(function (data) {
+
             const tbody = document.querySelector("#tablaAsistencia tbody");
             tbody.innerHTML = "";
 
@@ -114,37 +106,33 @@ function actualizarTabla() {
             const usuarios = data.usuarios || [];
             const asistencias = data.asistencias || [];
 
-            // ✅ Fecha de hoy en formato del Sheet
             const hoy = new Date();
             const fechaHoy =
                 String(hoy.getDate()).padStart(2, "0") + "/" +
                 String(hoy.getMonth() + 1).padStart(2, "0") + "/" +
                 hoy.getFullYear();
 
-            usuarios.forEach(nombre => {
-                const registro = asistencias.find(a =>
-                    a.nombre === nombre && a.fecha === fechaHoy
-                );
+            usuarios.forEach(function (nombre) {
+                const registro = asistencias.find(function (a) {
+                    return a.nombre === nombre && a.fecha === fechaHoy;
+                });
 
                 const tr = document.createElement("tr");
 
                 if (registro) {
                     presentes++;
-                    tr.innerHTML = `
-                        <td>${nombre}</td>
-                        <td class="presente">Presente</td>
-                        <td>${registro.fecha}</td>
-                        <td>${registro.hora}</td>
-                    `;
+                    tr.innerHTML =
+                        "<td>" + nombre + "</td>" +
+                        "<td class='presente'>Presente</td>" +
+                        "<td>" + registro.fecha + "</td>" +
+                        "<td>" + registro.hora + "</td>";
                 } else {
-                    tr.innerHTML = `
-                        <td>${nombre}</td>
-                        <td class="ausente">Ausente</td>
-                        <td>--</td>
-                        <td>--</td>
-                    `;
+                    tr.innerHTML =
+                        "<td>" + nombre + "</td>" +
+                        "<td class='ausente'>Ausente</td>" +
+                        "<td>--</td>" +
+                        "<td>--</td>";
                 }
-
                 tbody.appendChild(tr);
             });
 
@@ -154,19 +142,20 @@ function actualizarTabla() {
         });
 }
 
-// 4. EXPORTAR
+// 4. EXPORTAR EXCEL
 function exportarExcel() {
     const table = document.getElementById("tablaAsistencia");
     const wb = XLSX.utils.table_to_book(table);
     XLSX.writeFile(wb, "Asistencia.xlsx");
 }
 
-// INICIO
-window.onload = () => {
+// 5. INICIO
+window.onload = function () {
     iniciarScanner();
     actualizarTabla();
 };
 </script>
+
 
 
 </body>

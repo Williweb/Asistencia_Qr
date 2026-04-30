@@ -73,6 +73,7 @@ function iniciarScanner() {
         fps: 10,
         qrbox: { width: 250, height: 250 }
     });
+
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 }
 
@@ -81,6 +82,9 @@ function onScanSuccess(decodedText) {
     registrarAsistencia(decodedText);
 }
 
+function onScanFailure(error) {
+    // se ignora para no saturar la consola
+}
 // 2. REGISTRAR ASISTENCIA
 function registrarAsistencia(nombre) {
     fetch(URL_API, {

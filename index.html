@@ -114,12 +114,16 @@ function actualizarTabla() {
             const usuarios = data.usuarios || [];
             const asistencias = data.asistencias || [];
 
-            // ✅ Fecha hoy compatible
-            const hoy = new Date().toISOString().split("T")[0];
+            // ✅ Fecha de hoy en formato del Sheet
+            const hoy = new Date();
+            const fechaHoy =
+                String(hoy.getDate()).padStart(2, "0") + "/" +
+                String(hoy.getMonth() + 1).padStart(2, "0") + "/" +
+                hoy.getFullYear();
 
             usuarios.forEach(nombre => {
                 const registro = asistencias.find(a =>
-                    a.nombre === nombre && a.fecha.includes(hoy)
+                    a.nombre === nombre && a.fecha === fechaHoy
                 );
 
                 const tr = document.createElement("tr");
@@ -140,6 +144,7 @@ function actualizarTabla() {
                         <td>--</td>
                     `;
                 }
+
                 tbody.appendChild(tr);
             });
 

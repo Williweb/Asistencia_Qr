@@ -67,13 +67,12 @@
 const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
 let html5QrcodeScanner;
 
-// 1. INICIAR ESCÁNER
+// ===== CÁMARA =====
 function iniciarScanner() {
     html5QrcodeScanner = new Html5QrcodeScanner("reader", {
         fps: 10,
         qrbox: { width: 250, height: 250 }
     });
-
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 }
 
@@ -83,9 +82,10 @@ function onScanSuccess(decodedText) {
 }
 
 function onScanFailure(error) {
-    // se ignora para no saturar la consola
+    // ignorado
 }
-// 2. REGISTRAR ASISTENCIA
+
+// ===== REGISTRO =====
 function registrarAsistencia(nombre) {
     fetch(URL_API, {
         method: "POST",
@@ -97,10 +97,10 @@ function registrarAsistencia(nombre) {
     });
 }
 
-// 3. ACTUALIZAR TABLA (SOLO HOY)
+// ===== TABLA (SOLO HOY) =====
 function actualizarTabla() {
     fetch(URL_API)
-        .then(response => response.json())
+        .then(function (res) { return res.json(); })
         .then(function (data) {
 
             const tbody = document.querySelector("#tablaAsistencia tbody");
@@ -137,6 +137,7 @@ function actualizarTabla() {
                         "<td>--</td>" +
                         "<td>--</td>";
                 }
+
                 tbody.appendChild(tr);
             });
 
@@ -146,14 +147,14 @@ function actualizarTabla() {
         });
 }
 
-// 4. EXPORTAR EXCEL
+// ===== EXCEL =====
 function exportarExcel() {
     const table = document.getElementById("tablaAsistencia");
     const wb = XLSX.utils.table_to_book(table);
     XLSX.writeFile(wb, "Asistencia.xlsx");
 }
 
-// 5. INICIO
+// ===== INICIO =====
 window.onload = function () {
     iniciarScanner();
     actualizarTabla();

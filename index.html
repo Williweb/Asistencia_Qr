@@ -86,16 +86,52 @@ function onScanFailure(error) {
 }
 
 // ===== REGISTRO =====
+
 function registrarAsistencia(nombre) {
-    fetch(URL_API, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ nombre: nombre })
-    }).then(function () {
-        actualizarTabla();
-        setTimeout(iniciarScanner, 2000);
-    });
+
+    fetch(URL_API)
+        .then(response => response.json())
+        .then(data => {
+
+            const asistencias = data.asistencias || [];
+
+            // Fecha de hoy en formato dd/mm/yyyy
+            const hoy = new Date();
+            const fechaHoy =
+                String(hoy.getDate()).padStart(2, "0") + "/" +
+                String(hoy.getMonth() + 1).padStart(2, "0") + "/" +
+                hoy.getFullYear();
+
+            // ✅ VERIFICAR SI YA EXISTE REGISTRO HOY
+            const yaRegistrado = asistencias.some(a =>
+                a.nombre === nombre && a.fecha === fechaHoy
+            );
+
+            if (yaRegistrado) {
+                document.getElementById("status").textContent =
+                    "⚠️ " + nombre + " ya fue registrado hoy";
+                document.getElementById("status").style.background = "#fff3cd";
+
+                setTimeout(iniciarScanner, 2500);
+                return; // ⛔ BLOQUEA EL REGISTRO
+            }
+
+            // ✅ SI NO EXISTE, REGISTRA
+            fetch(URL_API, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify({ nombre: nombre })
+            }).then(function () {
+                document.getElementById("status").textContent =
+                    "✅ " + nombre + " registrado";
+                document.getElementById("status").style.background = "#d4edda";
+
+                actualizarTabla();
+                setTimeout(iniciarScanner, 2500);
+            });
+        });
 }
+
 
 // ===== TABLA (SOLO HOY) =====
 function actualizarTabla() {

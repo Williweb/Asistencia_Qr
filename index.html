@@ -64,80 +64,62 @@
 </div>
 
 <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
-    let html5QrcodeScanner;
+const URL_API = "https://script.google.com/macros/s/AKfycbwKy5ejOBAvQC-vmwkGenPz2VatLV6tnhVK9nEST5izFSdWoZq8JNj_tq3CTC8cZpBi/exec";
+let html5QrcodeScanner;
 
-    // 1. INICIAR EL ESCÁNER
-    function iniciarScanner() {
-        html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-            fps: 10, 
-            qrbox: {width: 250, height: 250},
-            aspectRatio: 1.0
-        });
-        
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-    }
+// 1. INICIAR EL ESCÁNER
+function iniciarScanner() {
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    });
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+}
 
-    function onScanSuccess(decodedText) {
-        // Detener para procesar
-        html5QrcodeScanner.clear();
-        registrarAsistencia(decodedText);
-    }
+function onScanSuccess(decodedText) {
+    html5QrcodeScanner.clear();
+    registrarAsistencia(decodedText);
+}
 
-    function onScanFailure(error) {
-        // Errores de lectura ignorados para no saturar la consola
-    }
+function onScanFailure(error) {}
 
-    // 2. REGISTRAR EN GOOGLE SHEETS
-    function registrarAsistencia(nombre) {
-        document.getElementById("status").textContent = "⏳ Registrando: " + nombre;
-        document.getElementById("status").style.background = "#fff3cd";
+// 2. REGISTRAR EN GOOGLE SHEETS
+function registrarAsistencia(nombre) {
+    document.getElementById("status").textContent = "⏳ Registrando: " + nombre;
+    document.getElementById("status").style.background = "#fff3cd";
 
-        fetch(URL_API, {
-            method: "POST",
-            mode: "no-cors", // Para evitar errores de CORS
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({ nombre: nombre })
-        })
-        .then(() => {
-            document.getElementById("status").textContent = "✅ " + nombre + " registrado";
-            document.getElementById("status").style.background = "#d4edda";
-            actualizarTabla();
-            setTimeout(iniciarScanner, 3000); // Reiniciar después de 3 seg
-        })
-        .catch(err => {
-            document.getElementById("status").textContent = "❌ Error al conectar";
-            document.getElementById("status").style.background = "#f8d7da";
-            setTimeout(iniciarScanner, 4000);
-        });
-    }
+    fetch(URL_API, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ nombre })
+    })
+    .then(() => {
+        document.getElementById("status").textContent = "✅ " + nombre + " registrado";
+        document.getElementById("status").style.background = "#d4edda";
+        actualizarTabla();
+        setTimeout(iniciarScanner, 3000);
+    });
+}
 
-    // 3. ACTUALIZAR TABLA
-<script>
+// 3. ACTUALIZAR TABLA (SOLO HOY)
 function actualizarTabla() {
-    fetch(`${URL_API}?t=${new Date().getTime()}`)
+    fetch(`${URL_API}?t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
             const tbody = document.querySelector("#tablaAsistencia tbody");
             tbody.innerHTML = "";
 
             let presentes = 0;
-
             const usuarios = data.usuarios || [];
             const asistencias = data.asistencias || [];
 
-            // ✅ FECHA DE HOY (dd/mm/yyyy)
-            const hoy = new Date();
-            const fechaHoy =
-                String(hoy.getDate()).padStart(2, "0") + "/" +
-                String(hoy.getMonth() + 1).padStart(2, "0") + "/" +
-                hoy.getFullYear();
+            // ✅ Fecha hoy compatible
+            const hoy = new Date().toISOString().split("T")[0];
 
             usuarios.forEach(nombre => {
-
-                // ✅ BUSCAR ASISTENCIA SOLO DEL DÍA DE HOY
                 const registro = asistencias.find(a =>
-                    a.nombre === nombre && a.fecha === fechaHoy
+                    a.nombre === nombre && a.fecha.includes(hoy)
                 );
 
                 const tr = document.createElement("tr");
@@ -158,28 +140,29 @@ function actualizarTabla() {
                         <td>--</td>
                     `;
                 }
-
                 tbody.appendChild(tr);
             });
 
             document.getElementById("totalPresentes").textContent = presentes;
-            document.getElementById("totalAusentes").textContent = usuarios.length - presentes;
+            document.getElementById("totalAusentes").textContent =
+                usuarios.length - presentes;
         });
 }
+
+// 4. EXPORTAR
+function exportarExcel() {
+    const table = document.getElementById("tablaAsistencia");
+    const wb = XLSX.utils.table_to_book(table);
+    XLSX.writeFile(wb, "Asistencia.xlsx");
+}
+
+// INICIO
+window.onload = () => {
+    iniciarScanner();
+    actualizarTabla();
+};
 </script>
 
-    // 4. EXPORTAR
-    function exportarExcel() {
-        const table = document.getElementById("tablaAsistencia");
-        const wb = XLSX.utils.table_to_book(table);
-        XLSX.writeFile(wb, "Asistencia.xlsx");
-    }
-
-    // INICIO
-    window.onload = () => {
-        iniciarScanner();
-        actualizarTabla();
-    };
 
 </body>
 </html>
